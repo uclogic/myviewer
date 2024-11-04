@@ -1,0 +1,10 @@
+[package]
+name = "myviewer"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+eframe = { version = "^0.29.0", features = ["default"] }
+egui_extras = { version = "^0.29.0", features = ["default", "all_loaders"] }
+image = { version = "^0.25.0", features = ["jpeg", "png"] }
+egui_plot = "^0.29.0"
