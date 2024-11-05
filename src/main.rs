@@ -1,3 +1,5 @@
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+
 use eframe::egui::{self, ColorImage, Event, Vec2, ViewportBuilder};
 use egui_plot::{PlotImage, PlotPoint};
 use image::ImageReader;
@@ -12,25 +14,15 @@ fn main() -> eframe::Result {
         .decode()
         .expect("Failed to decode image");
     let size = [img.width() as _, img.height() as _];
-    println!("size is : {:?}", size);
     let image_buffer = img.to_rgba8();
     let color_image = egui::ColorImage::from_rgba_unmultiplied(size, &image_buffer);
 
-    let max_size = (1920, 1080);
-    // 根据maxsize缩放size
-    let result_size = if size[0] > max_size.0 || size[1] > max_size.1 {
-        let ratio = size[0] as f32 / size[1] as f32;
-        let new_width = max_size.0 as f32;
-        let new_height = new_width / ratio;
-        let new_height = new_height.round() as usize;
-        (max_size.0, new_height)
-    } else {
-        (size[0], size[1])
-    };
+    let scaling = Scaling::new(1920.0, 1080.0);
+    let (scaled_a, scaled_b) = scaling.scale(size[0] as f32, size[1] as f32);
 
     let options = eframe::NativeOptions {
         viewport: ViewportBuilder::default()
-            .with_inner_size(Vec2::new(result_size.0 as f32, result_size.1 as f32)),
+            .with_inner_size(Vec2::new(scaled_a, scaled_b)),
         ..Default::default()
     };
 
@@ -90,6 +82,7 @@ impl eframe::App for MyApp {
                 .allow_scroll(false)
                 .show_grid(false)
                 .show_axes(false)
+                .data_aspect(1.0)
                 .show(ui, |plot_ui| {
                     if let Some(mut scroll) = scroll {
                         scroll = Vec2::splat(scroll.x + scroll.y);
@@ -109,5 +102,35 @@ impl eframe::App for MyApp {
                     plot_ui.image(PlotImage::new(tex, PlotPoint::new(0.0, 0.0), size));
                 });
         });
+    }
+}
+
+
+struct Scaling {
+    max_x: f32,
+    max_y: f32,
+}
+
+impl Scaling {
+    fn new(max_x: f32, max_y: f32) -> Self {
+        Scaling { max_x, max_y }
+    }
+
+    fn scale(&self, a: f32, b: f32) -> (f32, f32) {
+        let mut scale_factor = 1.0;
+
+        if a > self.max_x && b > self.max_y {
+            // 如果a和b都超过最大值，取较小的缩放比例
+            scale_factor = self.max_x / a;
+            scale_factor = f32::min(scale_factor, self.max_y / b);
+        } else if a > self.max_x {
+            // 只有a超过最大值，缩放a，保持b的比例
+            scale_factor = self.max_x / a;
+        } else if b > self.max_y {
+            // 只有b超过最大值，缩放b，保持a的比例
+            scale_factor = self.max_y / b;
+        }
+
+        (a * scale_factor, b * scale_factor)
     }
 }
