@@ -83,6 +83,9 @@ impl eframe::App for MyApp {
                 .show_grid(false)
                 .show_axes(false)
                 .data_aspect(1.0)
+                .show_x(false)
+                .show_y(false)
+                .label_formatter(|name, value| { "".to_owned()})
                 .show(ui, |plot_ui| {
                     if let Some(mut scroll) = scroll {
                         scroll = Vec2::splat(scroll.x + scroll.y);
@@ -129,6 +132,8 @@ impl Scaling {
         } else if b > self.max_y {
             // 只有b超过最大值，缩放b，保持a的比例
             scale_factor = self.max_y / b;
+        } else {
+            return (self.max_x, self.max_y);
         }
 
         (a * scale_factor, b * scale_factor)
